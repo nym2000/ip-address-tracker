@@ -1,0 +1,3 @@
+Write a 200-300 word reflection discussing your development process, challenges faced, solutions implemented, and potential improvements.
+
+Development process: The first step for me was to create a replica of the design that was provided without any functionality. This involved using HTML and CSS, both of which we using sometime ago and therefore I need some brushing up on. I opted to use internal CSS to minimize the back and forth between tabs.

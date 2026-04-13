@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IP Address Tracker</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rubik', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        #header {
+            background-image: url('./images/pattern-bg-desktop.png');
+            background-size: cover;
+            background-position: center;
+            height: 250px;
+            position: relative;
+            text-align: center;
+            padding: 50px;
+        }
+
+        #header h1 {
+            color: white;
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        /* Search */
+        #search-form {
+            display: flex;
+            justify-content: center;
+        }
+
+        #ip-input {
+            width: 100%;
+            max-width: 400px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px 0 0 12px;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        #search-btn {
+            background-color: black;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            cursor: pointer;
+            color: white;
+            font-size: 1rem;
+        }
+
+        #search-btn:hover {
+            background-color: hsl(0, 0%, 17%);
+        }
+
+
+        /* Info cards */
+        #info-card {
+            position: absolute;
+            bottom: -75px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 1000px;
+            background: white;
+            border-radius: 30px;
+            padding: 28px 32px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            gap: 20px;
+            z-index: 999;
+            box-shadow: 0 5px 30px black;
+        }
+
+        /* Blocks */
+        .info-block {
+            text-align: center;
+            min-width: 100px;
+            flex: 1;
+        }
+
+        /* Block labels */
+        .info-block p.label {
+            font-weight: bold;
+            color: gray;
+            text-transform: uppercase;
+        }
+
+        .info-block p.value {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: hsl(0, 0%, 17%);
+        }
+
+        /* Map */
+        #map {
+            height: calc(100vh - 250px);
+            width: 100%;
+            z-index: 0;
+            margin-top: 0;
+        }
+
+        /* Hide error message on initial page load */
+        #error-msg {
+            color: #ff6060;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            #info-card {
+                flex-direction: column;
+                bottom: -200px;
+            }
+
+            .info-block+.info-block {
+                border-left: none;
+                border-top: 1px solid #ddd;
+                padding-left: 0;
+                padding-top: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <div id="header">
+        <h1>IP Address Tracker</h1>
+
+        <!-- Search bar -->
+        <div id="search-form">
+            <input type="text" id="ip-input" placeholder="Search for any IP address or domain" />
+            <button id="search-btn" onclick="handleSearch()">&#8594;</button>
+        </div>
+
+
+        <!-- Error message for failed call -->
+        <p id="error-msg">Invalid IP address. Please try again.</p>
+
+        <!-- Info card + blocks -->
+        <div id="info-card">
+            <div class="info-block">
+                <p class="label">IP Address</p>
+                <p class="value" id="display-ip">—</p>
+            </div>
+            <div class="info-block">
+                <p class="label">Location</p>
+                <p class="value" id="display-location">—</p>
+            </div>
+            <div class="info-block">
+                <p class="label">Timezone</p>
+                <p class="value" id="display-timezone">—</p>
+            </div>
+            <div class="info-block">
+                <p class="label">ISP</p>
+                <p class="value" id="display-isp">—</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Set up Leaflet map -->
+    <div id="map"></div>
+
+
+    <script>
+        var map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Blue marker
+        var marker = null;
+
+        // Handle search function to read IP input
+        function handleSearch() {
+            var ipValue = document.getElementById('ip-input').value.trim();
+            document.getElementById('error-msg').style.display = 'none';
+            if (ipValue === '') {
+                showError();
+                return;
+            }
+            lookupIP(ipValue);
+        }
+
+        // Also trigger search when the user presses Enter
+        document.getElementById('ip-input').addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                handleSearch();
+            }
+        });
+
+        var apiKey = 'at_qC1FolEpuYwmuscMwsOAKhx3I4I3v';
+
+        function lookupIP(ip) {
+            // Building URL
+            var url = 'https://geo.ipify.org/api/v2/country,city?apiKey=' + apiKey;
+
+
+            // Append IP to URL above
+            // Autodetection of IP otherwise
+            if (ip !== '') {
+                url = url + '&ipAddress=' + ip;
+            }
+
+            // Use full URL to receive data + process into JSON
+            fetch(url)
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                    // Error handling if "messages" field is present
+                    if (data.messages) {
+                        showError();
+                        return;
+                    }
+
+                    displayData(data);
+                })
+                .catch(function () {
+                    showError();
+                });
+        }
+
+        // Adding data to info blocks
+        function displayData(data) {
+            document.getElementById('display-ip').textContent = data.ip;
+            document.getElementById('display-location').textContent =
+                data.location.city + ', ' + data.location.region + ' ' + data.location.postalCode;
+            document.getElementById('display-timezone').textContent = 'UTC ' + data.location.timezone;
+            document.getElementById('display-isp').textContent = data.isp;
+
+            // Update map with new coordinates
+            var lat = data.location.lat;
+            var lng = data.location.lng;
+            map.setView([lat, lng], 13);
+            marker = L.marker([lat, lng]).addTo(map);
+        }
+
+        function showError() {
+            document.getElementById('error-msg').style.display = 'block';
+        }
+
+        // On page load, show user's own IP
+        lookupIP('');
+
+    </script>
+</body>
+
+</html>
