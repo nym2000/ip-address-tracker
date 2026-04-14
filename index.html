@@ -158,13 +158,14 @@
         <h1>IP Address Tracker</h1>
 
         <!-- Search bar -->
-        <div id="search-form">
-            <input type="text" id="ip-input" placeholder="Search for any IP address or domain" />
-            <button id="search-btn" onclick="handleSearch()">&#8594;</button>
+        <div id="search-form" role="search">
+            <label for="ip-input" class="visually-hidden">Search for any IP address or domain</label>
+            <input type="text" id="ip-input" placeholder="Search for any IP address or domain" aria-describedby="error-msg" />
+            <button id="search-btn" onclick="handleSearch()" aria-label="Search">&#8594;</button>
         </div>
 
         <!-- Error message for failed call -->
-        <p id="error-msg">Invalid IP address or domain. Please try again.</p>
+        <p id="error-msg" role="alert">Invalid IP address or domain. Please try again.</p>
 
         <!-- Info card + blocks -->
         <div id="info-card" role="region" aria-live="polite" aria-label="IP Results">
@@ -188,7 +189,7 @@
     </div>
 
     <!-- Set up Leaflet map -->
-    <div id="map"></div>
+    <div id="map" role="application" aria-label="IP location map"></div>
 
     <script>
         var map = L.map('map').setView([51.505, -0.09], 13);
