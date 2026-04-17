@@ -19,136 +19,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Rubik', sans-serif;
-            min-height: 100vh;
-        }
-
-        /* Header */
-        #header {
-            background-image: url('./images/pattern-bg-desktop.png');
-            background-size: cover;
-            background-position: center;
-            height: 250px;
-            position: relative;
-            text-align: center;
-            padding: 40px;
-        }
-
-        #header h1 {
-            color: white;
-            font-size: 2rem;
-            margin-bottom: 20px;
-        }
-
-        /* Search */
-        #search-form {
-            display: flex;
-            justify-content: center;
-        }
-
-        #ip-input {
-            width: 100%;
-            max-width: 400px;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 12px 0 0 12px;
-            font-size: 1rem;
-            outline: none;
-        }
-
-        #search-btn {
-            background-color: black;
-            border: none;
-            padding: 15px 20px;
-            border-radius: 0 10px 10px 0;
-            cursor: pointer;
-            color: white;
-            font-size: 1rem;
-        }
-
-        #search-btn:hover {
-            background-color: hsl(0, 0%, 17%);
-        }
-
-
-        /* Info cards */
-        #info-card {
-            position: absolute;
-            bottom: -75px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            max-width: 1000px;
-            background: white;
-            border-radius: 30px;
-            padding: 20px 32px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-around;
-            gap: 20px;
-            z-index: 999;
-            box-shadow: 0 5px 30px black;
-        }
-
-        /* Blocks */
-        .info-block {
-            text-align: center;
-            min-width: 100px;
-            flex: 1;
-        }
-
-        /* Block labels */
-        .info-block p.label {
-            font-weight: bold;
-            color: gray;
-            text-transform: uppercase;
-        }
-
-        .info-block p.value {
-            font-size: 1.2rem;
-            font-weight: 500;
-            color: hsl(0, 0%, 17%);
-        }
-
-        /* Map */
-        #map {
-            height: calc(100vh - 250px);
-            width: 100%;
-            z-index: 0;
-            margin-top: 0;
-        }
-
-        /* Hide error message on initial page load */
-        #error-msg {
-            color: #ff6060;
-            font-size: 0.85rem;
-            margin-top: 8px;
-            display: none;
-        }
-
-        /* Responsive */
-        @media (max-width: 600px) {
-            #info-card {
-                flex-direction: column;
-                bottom: -200px;
-            }
-
-            .info-block+.info-block {
-                border-left: none;
-                border-top: 1px solid #ddd;
-                padding-left: 0;
-                padding-top: 12px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
 </head>
 
 <body>
@@ -160,7 +32,8 @@
         <!-- Search bar -->
         <div id="search-form" role="search">
             <label for="ip-input" class="visually-hidden">Search for any IP address or domain</label>
-            <input type="text" id="ip-input" placeholder="Search for any IP address or domain" aria-describedby="error-msg" />
+            <input type="text" id="ip-input" placeholder="Search for any IP address or domain"
+                aria-describedby="error-msg" />
             <button id="search-btn" onclick="handleSearch()" aria-label="Search">&#8594;</button>
         </div>
 
@@ -191,92 +64,6 @@
     <!-- Set up Leaflet map -->
     <div id="map" role="application" aria-label="IP location map"></div>
 
-    <script>
-        var map = L.map('map').setView([51.505, -0.09], 13);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        // Blue marker
-        var marker = null;
-
-        // Handle search function to read IP input
-        function handleSearch() {
-            var ipValue = document.getElementById('ip-input').value.trim();
-            document.getElementById('error-msg').style.display = 'none';
-            if (ipValue === '') {
-                showError();
-                return;
-            }
-            lookupIP(ipValue);
-        }
-
-        // Also trigger search when the user presses Enter
-        document.getElementById('ip-input').addEventListener('keydown', function (event) {
-            if (event.key === 'Enter') {
-                handleSearch();
-            }
-        });
-
-        var apiKey = 'at_qC1FolEpuYwmuscMwsOAKhx3I4I3v';
-
-        function lookupIP(ip) {
-            // Building URL
-            var url = 'https://geo.ipify.org/api/v2/country,city?apiKey=' + apiKey;
-
-            // Append IP to URL above
-            // Autodetection of IP otherwise
-            if (ip !== '') {
-                var isDomain = isNaN(ip.replace(/\./g, ''));
-                if (isDomain) {
-                    url = url + '&domain=' + ip;
-                } else {
-                    url = url + '&ipAddress=' + ip;
-                }
-            }
-
-            // Use full URL to receive data + process into JSON
-            fetch(url)
-                .then(function (response) {
-                    return response.json();
-                })
-                .then(function (data) {
-                    // Error handling if "messages" field is present
-                    if (data.messages) {
-                        showError();
-                        return;
-                    }
-
-                    displayData(data);
-                })
-                .catch(function () {
-                    showError();
-                });
-        }
-
-        // Adding data to info blocks
-        function displayData(data) {
-            document.getElementById('display-ip').textContent = data.ip;
-            document.getElementById('display-location').textContent =
-                data.location.city + ', ' + data.location.region + ' ' + data.location.postalCode;
-            document.getElementById('display-timezone').textContent = 'UTC ' + data.location.timezone;
-            document.getElementById('display-isp').textContent = data.isp;
-
-            // Update map with new coordinates
-            var lat = data.location.lat;
-            var lng = data.location.lng;
-            map.setView([lat, lng], 13);
-            marker = L.marker([lat, lng]).addTo(map);
-        }
-
-        function showError() {
-            document.getElementById('error-msg').style.display = 'block';
-        }
-
-        // On page load, show user's own IP
-        lookupIP('');
-
-    </script>
 </body>
 
 </html>
